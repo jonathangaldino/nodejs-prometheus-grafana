@@ -1,0 +1,55 @@
+version: "3.1"
+
+networks:
+  laboratory:
+    driver: bridge
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.16.0
+    container_name: prometheus-lab
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    expose:
+      - 9090
+    networks:
+      - laboratory
+
+  grafana:
+    image: grafana/grafana:6.6.2
+    container_name: grafana-lab
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    expose:
+      - 3000
+    networks:
+      - laboratory
+
+  nodejs:
+    image: laboratory/app
+    container_name: app-lab
+    restart: unless-stopped
+    expose:
+      - 5000
+      - 9991
+    networks:
+      - laboratory
